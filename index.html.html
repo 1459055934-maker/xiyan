@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>希言 · 政治哲学助手</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f7f7f5;
+  --bg-hover: #f1f1ef;
+  --bg-active: #ebebea;
+  --border: #e9e9e7;
+  --border-strong: #d3d3cf;
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #9b9b9b;
+  --accent: #2f6fef;
+  --accent-bg: #eef3fd;
+  --accent-light: #dbe8fc;
+  --red: #e03e3e;
+  --red-bg: #fdf2f2;
+  --green: #0f7b55;
+  --green-bg: #edfaf4;
+  --yellow: #c48a12;
+  --yellow-bg: #fef8ee;
+  --sidebar-w: 380px;
+  --header-h: 48px;
+  --radius: 6px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+}
+
+body {
+  font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* TOPBAR */
+.topbar {
+  height: var(--header-h);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--bg);
+  z-index: 100;
+  gap: 12px;
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.logo-icon {
+  width: 26px; height: 26px;
+  background: var(--text-primary);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.logo-text { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+
+.logo-badge {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.topbar-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 4px;
+  font-size: 11.5px; color: var(--text-secondary);
+}
+
+.stat-dot { width: 6px; height: 6px; border-radius: 50%; }
+.stat-dot.blue { background: var(--accent); }
+.stat-dot.green { background: var(--green); }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius);
+  font-size: 12.5px; font-family: inherit; font-weight: 500;
+  cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-default { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-default:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+.btn-primary { background: var(--text-primary); color: white; }
+.btn-primary:hover { background: #2d2d2b; }
+
+/* LAYOUT */
+.workspace { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.sidebar-toolbar {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0;
+}
+
+.search-box { position: relative; display: flex; align-items: center; }
+
+.search-icon {
+  position: absolute; left: 9px;
+  color: var(--text-tertiary); font-size: 14px; pointer-events: none;
+}
+
+.search-input {
+  width: 100%; padding: 6px 10px 6px 30px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; color: var(--text-primary);
+  background: var(--bg-secondary); outline: none; transition: all 0.15s;
+}
+.search-input:focus {
+  border-color: var(--accent); background: var(--bg);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.search-input::placeholder { color: var(--text-tertiary); }
+
+.filter-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.filter-chip {
+  padding: 3px 8px; border-radius: 4px;
+  font-size: 11.5px; font-family: inherit;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text-secondary); transition: all 0.15s;
+}
+.filter-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.filter-chip.active { background: var(--text-primary); color: white; border-color: var(--text-primary); }
+
+.group-header {
+  padding: 10px 14px 4px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.group-label {
+  font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.group-count {
+  font-size: 11px; color: var(--text-tertiary);
+  background: var(--bg-secondary); padding: 1px 6px; border-radius: 10px;
+}
+
+.card-list {
+  flex: 1; overflow-y: auto; padding: 4px 8px;
+}
+.card-list::-webkit-scrollbar { width: 4px; }
+.card-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+.concept-card {
+  padding: 10px 12px; border-radius: var(--radius);
+  cursor: pointer; transition: background 0.12s;
+  border: 1px solid transparent; margin-bottom: 2px;
+}
+.concept-card:hover { background: var(--bg-hover); }
+.concept-card.expanded { background: var(--bg-secondary); border-color: var(--border); }
+
+.card-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px;
+}
+.card-name { font-size: 13.5px; font-weight: 500; line-height: 1.3; }
+.card-thinker { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+.card-arrow {
+  color: var(--text-tertiary); font-size: 10px;
+  transition: transform 0.2s; flex-shrink: 0; margin-top: 3px;
+}
+.concept-card.expanded .card-arrow { transform: rotate(90deg); }
+
+.card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 7px; }
+
+.tag { font-size: 11px; padding: 2px 6px; border-radius: 3px; font-weight: 400; }
+.tag-blue { background: var(--accent-bg); color: var(--accent); }
+.tag-red { background: var(--red-bg); color: var(--red); }
+.tag-green { background: var(--green-bg); color: var(--green); }
+.tag-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.tag-gray { background: var(--bg-active); color: var(--text-secondary); }
+
+.card-detail {
+  display: none; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+  animation: slideDown 0.15s ease;
+}
+.concept-card.expanded .card-detail { display: block; }
+
+@keyframes slideDown {
+  from { opacity:0; transform:translateY(-4px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.detail-row { display: flex; gap: 8px; margin-bottom: 7px; align-items: flex-start; }
+.detail-label {
+  font-size: 11px; font-weight: 500; color: var(--text-tertiary);
+  width: 54px; flex-shrink: 0; padding-top: 1px;
+}
+.detail-value { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; flex: 1; }
+
+.detail-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+.sidebar-footer {
+  padding: 10px 12px; border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.add-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 7px; border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; font-weight: 500;
+  cursor: pointer; border: 1px dashed var(--border-strong);
+  background: transparent; color: var(--text-secondary); transition: all 0.15s;
+}
+.add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* RIGHT PANEL */
+.right-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg);
+}
+
+.chat-toolbar {
+  height: 44px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 14px; gap: 8px; flex-shrink: 0;
+}
+.chat-info { display: flex; align-items: center; gap: 6px; flex: 1; }
+
+.model-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 11.5px; color: var(--text-secondary);
+  font-family: 'DM Mono', monospace;
+}
+.model-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.turn-counter {
+  font-size: 11.5px; color: var(--text-tertiary);
+  padding: 3px 8px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+}
+
+.quick-bar {
+  padding: 7px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; background: var(--bg-secondary);
+}
+.quick-label {
+  font-size: 11px; color: var(--text-tertiary);
+  font-weight: 500; white-space: nowrap; letter-spacing: 0.03em;
+}
+.quick-chips { display: flex; gap: 5px; }
+.quick-chip {
+  padding: 4px 10px; border-radius: 4px;
+  font-size: 12px; font-family: inherit;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text-secondary); transition: all 0.15s;
+}
+.quick-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+.chat-frame { flex: 1; overflow: hidden; position: relative; }
+.chat-frame iframe { width:100%; height:100%; border:none; display:block; }
+
+.action-bar {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; background: var(--bg);
+}
+.action-hint { font-size: 11.5px; color: var(--text-tertiary); flex: 1; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3); backdrop-filter: blur(2px);
+  z-index: 1000; display: none;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg); border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  width: 520px; max-width: 90vw; max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.18s ease;
+}
+@keyframes slideUp {
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.modal-header {
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: var(--bg); z-index: 1;
+}
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close {
+  width: 26px; height: 26px; border-radius: 4px; border: none;
+  background: transparent; cursor: pointer; color: var(--text-tertiary);
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.modal-body { padding: 16px 20px; }
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--text-secondary); margin-bottom: 5px;
+}
+.form-required { color: var(--red); margin-left: 2px; }
+
+.form-input, .form-textarea, .form-select {
+  width: 100%; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13.5px; font-family: inherit; color: var(--text-primary);
+  background: var(--bg); outline: none; transition: all 0.15s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light);
+}
+.form-textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.modal-footer {
+  padding: 12px 20px 16px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+  position: sticky; bottom: 0; background: var(--bg);
+}
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary); color: white;
+  padding: 8px 16px; border-radius: 6px;
+  font-size: 13px; z-index: 9999;
+  box-shadow: var(--shadow-md);
+  animation: toastAnim 2.6s ease forwards;
+  white-space: nowrap; pointer-events: none;
+}
+@keyframes toastAnim {
+  0%{opacity:0;transform:translateX(-50%) translateY(8px)}
+  12%{opacity:1;transform:translateX(-50%) translateY(0)}
+  80%{opacity:1}
+  100%{opacity:0;transform:translateX(-50%) translateY(4px)}
+}
+
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px; color: var(--text-tertiary);
+  gap: 8px; text-align: center;
+}
+.empty-icon { font-size: 28px; opacity: 0.35; }
+.empty-text { font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-icon">希</div>
+    <span class="logo-text">希言</span>
+    <span class="logo-badge">政治哲学助手</span>
+  </div>
+
+  <div class="topbar-stats">
+    <div class="stat-pill">
+      <span class="stat-dot blue"></span>
+      <span id="total-count">0</span> 个概念
+    </div>
+    <div class="stat-pill">
+      <span class="stat-dot green"></span>
+      <span id="today-count">0</span> 今日新增
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <button class="btn btn-ghost" onclick="exportData()">↓ 导出知识库</button>
+    <button class="btn btn-default" onclick="clearToday()">清空今日标记</button>
+    <button class="btn btn-primary" onclick="openModal()">＋ 新增概念</button>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="searchInput" type="text"
+          placeholder="搜索概念、思想家、主张…" oninput="renderCards()">
+      </div>
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="setFilter('all',this)">全部</button>
+        <button class="filter-chip" onclick="setFilter('古典',this)">古典</button>
+        <button class="filter-chip" onclick="setFilter('近代',this)">近代</button>
+        <button class="filter-chip" onclick="setFilter('现代',this)">现代</button>
+        <button class="filter-chip" onclick="setFilter('治理',this)">治理实践</button>
+        <button class="filter-chip" onclick="setFilter('中国',this)">中国传统</button>
+      </div>
+    </div>
+
+    <div class="group-header">
+      <span class="group-label">知识地图</span>
+      <span class="group-count" id="visible-count">0</span>
+    </div>
+
+    <div class="card-list" id="cardList"></div>
+
+    <div class="sidebar-footer">
+      <button class="add-btn" onclick="openModal()">
+        ＋ &nbsp;新增概念条目
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="chat-toolbar">
+      <div class="chat-info">
+        <div class="model-badge">
+          <span class="model-dot"></span>
+          Gemini 2.5 Flash
+        </div>
+        <div class="turn-counter" id="turnCounter">轮次 —</div>
+      </div>
+      <button class="btn btn-ghost" onclick="resetChat()">↺ 重置对话</button>
+    </div>
+
+    <div class="quick-bar">
+      <span class="quick-label">快捷指令 →</span>
+      <div class="quick-chips">
+        <button class="quick-chip" onclick="copyPrompt('请帮我分析以下文本，从政治哲学视角给出结构性解读：\n\n')">📄 分析文本</button>
+        <button class="quick-chip" onclick="copyPrompt('我有一个判断，请检验其理论支撑并找出反驳视角：\n\n')">🔎 检验观点</button>
+        <button class="quick-chip" onclick="copyPrompt('我面临以下工作决策困境，请给出结构性分析与现实指向：\n\n')">⚖️ 决策研判</button>
+        <button class="quick-chip" onclick="copyPrompt('请解释以下概念并指出其对立张力与当代应用：\n\n')">📖 查询概念</button>
+      </div>
+    </div>
+
+    <div class="chat-frame">
+      <iframe id="difyFrame"
+        src="https://udify.app/chatbot/lD4r1x7e6vFSEpZ9"
+        allow="microphone" title="希言对话">
+      </iframe>
+    </div>
+
+    <div class="action-bar">
+      <span class="action-hint">💡 对话结束后，将 AI 提炼的知识条目存入左侧知识库，持续沉淀</span>
+      <button class="btn btn-default" onclick="openModal()">＋ 提炼知识条目</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">新增概念条目</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editIdx" value="-1">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">概念名称<span class="form-required">*</span></label>
+          <input class="form-input" id="f-name" placeholder="如：社会契约">
+        </div>
+        <div class="form-group">
+          <label class="form-label">思想家</label>
+          <input class="form-input" id="f-thinker" placeholder="如：卢梭、霍布斯">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">核心主张<span class="form-required">*</span></label>
+        <input class="form-input" id="f-claim" placeholder="一句话概括核心论点">
+      </div>
+      <div class="form-group">
+        <label class="form-label">对立关系</label>
+        <input class="form-input" id="f-tension" placeholder="如：↔ 施米特决断论（契约理性 vs 例外状态）">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">时代分类</label>
+          <select class="form-select" id="f-era">
+            <option value="">未分类</option>
+            <option value="古典">古典</option>
+            <option value="近代">近代</option>
+            <option value="现代">现代</option>
+            <option value="治理">治理实践</option>
+            <option value="中国">中国传统</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">应用场景</label>
+          <input class="form-input" id="f-scene" placeholder="如：政策执行分析">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">触发问题</label>
+        <input class="form-input" id="f-trigger" placeholder="是什么问题引出了这个概念？">
+      </div>
+      <div class="form-group">
+        <label class="form-label">我的观点</label>
+        <textarea class="form-textarea" id="f-opinion"
+          placeholder="你对这个概念的个人判断与延伸思考…" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveConcept()">保存条目</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'xiyan_v2_concepts';
+let concepts = [];
+let currentFilter = 'all';
+let expandedIdx = -1;
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    concepts = raw ? JSON.parse(raw) : defaultConcepts();
+  } catch(e) { concepts = defaultConcepts(); }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(concepts));
+  updateStats();
+}
+
+function defaultConcepts() {
+  return [
+    { name:'社会契约', thinker:'卢梭、霍布斯、洛克', claim:'个人让渡部分权利给公共权威，以换取秩序与保护', tension:'↔ 施米特决断论（契约理性 vs 例外状态）', era:'近代', scene:'基层治理合法性分析、政策执行阻力研判', trigger:'', opinion:'', date:today(), isToday:false },
+    { name:'科层制', thinker:'韦伯', claim:'以规则、层级、专业分工为基础的理性化组织形式', tension:'↔ 魅力型权威（制度理性 vs 个人权威）', era:'现代', scene:'机构改革、部门协调失灵、执行力分析', trigger:'', opinion:'', date:today(), isToday:false },
+    { name:'委托代理', thinker:'政治经济学传统', claim:'上级委托下级执行，信息不对称导致目标偏离', tension:'↔ 整体性治理（碎片化 vs 协同）', era:'治理', scene:'政策落地走样、考核指标异化、基层应付检查', trigger:'基层政府在执行上级政策时出现表面合规、实质变形', opinion:'', date:today(), isToday:false }
+  ];
+}
+
+function today() { return new Date().toLocaleDateString('zh-CN'); }
+
+function renderCards() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('cardList');
+  const filtered = concepts.filter((c,i) => {
+    const mf = currentFilter === 'all' || c.era === currentFilter;
+    const ms = !q || [c.name,c.thinker,c.claim,c.scene].some(s=>(s||'').toLowerCase().includes(q));
+    return mf && ms;
+  });
+
+  document.getElementById('visible-count').textContent = filtered.length;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-text">暂无匹配条目<br>点击「新增概念条目」开始构建知识地图</div></div>`;
+    return;
+  }
+
+  const eraColor = { '古典':'tag-yellow','近代':'tag-blue','现代':'tag-red','治理':'tag-green','中国':'tag-gray' };
+
+  list.innerHTML = filtered.map(c => {
+    const ri = concepts.indexOf(c);
+    const exp = expandedIdx === ri;
+    const ec = eraColor[c.era] || 'tag-gray';
+    return `<div class="concept-card ${exp?'expanded':''}" onclick="toggleCard(${ri})">
+      <div class="card-top">
+        <div>
+          <div class="card-name">${c.name}</div>
+          <div class="card-thinker">${c.thinker||'未标注思想家'}</div>
+        </div>
+        <span class="card-arrow">▶</span>
+      </div>
+      <div class="card-tags">
+        ${c.era?`<span class="tag ${ec}">${c.era}</span>`:''}
+        ${c.isToday?'<span class="tag tag-green">今日新增</span>':''}
+        ${c.scene?`<span class="tag tag-gray">${c.scene.split('、')[0]}</span>`:''}
+      </div>
+      <div class="card-detail">
+        ${c.claim?`<div class="detail-row"><span class="detail-label">核心主张</span><span class="detail-value">${c.claim}</span></div>`:''}
+        ${c.tension?`<div class="detail-row"><span class="detail-label">对立关系</span><span class="detail-value">${c.tension}</span></div>`:''}
+        ${c.trigger?`<div class="detail-row"><span class="detail-label">触发问题</span><span class="detail-value">${c.trigger}</span></div>`:''}
+        ${c.scene?`<div class="detail-row"><span class="detail-label">应用场景</span><span class="detail-value">${c.scene}</span></div>`:''}
+        ${c.opinion?`<div class="detail-row"><span class="detail-label">我的观点</span><span class="detail-value">${c.opinion}</span></div>`:''}
+        <div class="detail-row"><span class="detail-label">录入日期</span><span class="detail-value">${c.date}</span></div>
+        <div class="detail-actions">
+          <button class="btn btn-default" style="font-size:11.5px;padding:4px 8px" onclick="editCard(event,${ri})">编辑</button>
+          <button class="btn btn-ghost" style="font-size:11.5px;padding:4px 8px;color:var(--red)" onclick="deleteCard(event,${ri})">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(i) { expandedIdx = expandedIdx===i?-1:i; renderCards(); }
+
+function setFilter(val, el) {
+  currentFilter = val;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderCards();
+}
+
+function updateStats() {
+  document.getElementById('total-count').textContent = concepts.length;
+  document.getElementById('today-count').textContent = concepts.filter(c=>c.isToday).length;
+}
+
+// MODAL
+function openModal(pre) {
+  clearForm();
+  document.getElementById('editIdx').value = -1;
+  document.getElementById('modalTitle').textContent = '新增概念条目';
+  if (pre) {
+    document.getElementById('f-name').value = pre.name||'';
+    document.getElementById('f-claim').value = pre.claim||'';
+    document.getElementById('f-thinker').value = pre.thinker||'';
+    document.getElementById('f-tension').value = pre.tension||'';
+    document.getElementById('f-scene').value = pre.scene||'';
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),120);
+}
+
+function editCard(e, i) {
+  e.stopPropagation();
+  const c = concepts[i];
+  document.getElementById('editIdx').value = i;
+  document.getElementById('modalTitle').textContent = '编辑概念条目';
+  document.getElementById('f-name').value = c.name||'';
+  document.getElementById('f-thinker').value = c.thinker||'';
+  document.getElementById('f-claim').value = c.claim||'';
+  document.getElementById('f-tension').value = c.tension||'';
+  document.getElementById('f-era').value = c.era||'';
+  document.getElementById('f-scene').value = c.scene||'';
+  document.getElementById('f-trigger').value = c.trigger||'';
+  document.getElementById('f-opinion').value = c.opinion||'';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeBg(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+
+function clearForm() {
+  ['f-name','f-thinker','f-claim','f-tension','f-scene','f-trigger','f-opinion'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('f-era').value='';
+}
+
+function saveConcept() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { toast('请填写概念名称'); return; }
+  const concept = {
+    name, thinker: document.getElementById('f-thinker').value.trim(),
+    claim: document.getElementById('f-claim').value.trim(),
+    tension: document.getElementById('f-tension').value.trim(),
+    era: document.getElementById('f-era').value,
+    scene: document.getElementById('f-scene').value.trim(),
+    trigger: document.getElementById('f-trigger').value.trim(),
+    opinion: document.getElementById('f-opinion').value.trim(),
+    date: today(), isToday: true
+  };
+  const idx = parseInt(document.getElementById('editIdx').value);
+  if (idx >= 0) {
+    concept.isToday = concepts[idx].isToday;
+    concept.date = concepts[idx].date;
+    concepts[idx] = concept;
+    toast('概念已更新');
+  } else {
+    concepts.unshift(concept);
+    toast('✓ 已存入知识库');
+  }
+  saveData(); renderCards(); closeModal();
+}
+
+function deleteCard(e, i) {
+  e.stopPropagation();
+  if (!confirm(`确定删除「${concepts[i].name}」？`)) return;
+  concepts.splice(i,1);
+  if (expandedIdx===i) expandedIdx=-1;
+  saveData(); renderCards(); toast('已删除');
+}
+
+// QUICK COPY
+function copyPrompt(text) {
+  navigator.clipboard.writeText(text).then(()=>{
+    toast('✓ 已复制 → 请粘贴到对话框');
+  }).catch(()=>toast('请手动输入到对话框'));
+}
+
+// UTILS
+function resetChat() {
+  if (!confirm('重置对话？当前记录将清空。')) return;
+  const f = document.getElementById('difyFrame');
+  f.src = f.src;
+  document.getElementById('turnCounter').textContent = '轮次 —';
+  toast('对话已重置');
+}
+
+function clearToday() {
+  concepts.forEach(c=>c.isToday=false);
+  saveData(); renderCards(); toast('今日标记已清除');
+}
+
+function exportData() {
+  const text = concepts.map(c=>[
+    `# ${c.name}`,
+    `思想家：${c.thinker||'—'}`,
+    `核心主张：${c.claim||'—'}`,
+    `对立关系：${c.tension||'—'}`,
+    `时代：${c.era||'—'}`,
+    `应用场景：${c.scene||'—'}`,
+    c.trigger?`触发问题：${c.trigger}`:'',
+    c.opinion?`我的观点：${c.opinion}`:'',
+    `录入日期：${c.date}`
+  ].filter(Boolean).join('\n')).join('\n\n---\n\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
+  a.download = `希言知识地图_${today()}.txt`;
+  a.click();
+  toast('✓ 导出成功');
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2700);
+}
+
+// INIT
+loadData(); renderCards(); updateStats();
+</script>
+</body>
+</html>
