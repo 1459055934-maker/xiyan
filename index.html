@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>希言 · 政治哲学助手</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#fff;--bg2:#f8f9fb;--bg3:#f2f4f7;--bg4:#eaecf0;--bg5:#e0e3e8;
+  --border:#e8eaed;--border2:#d4d8de;--border3:#bec3cb;
+  --t1:#111318;--t2:#555e6e;--t3:#8892a0;--t4:#b0b8c4;
+  --blue:#2563eb;--blue2:#3b7af0;--blue3:#6096f5;
+  --blue-bg:#eff4ff;--blue-mid:#dbeafe;--blue-bdr:rgba(37,99,235,.2);
+  --green:#059669;--green-bg:#ecfdf5;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --yellow:#d97706;--yellow-bg:#fffbeb;
+  --purple:#7c3aed;--purple-bg:#f5f3ff;
+  --sh1:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 12px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.04);
+  --sh3:0 8px 28px rgba(0,0,0,.09),0 4px 8px rgba(0,0,0,.05);
+  --sh4:0 20px 60px rgba(0,0,0,.12),0 8px 20px rgba(0,0,0,.06);
+  --r:8px;--r2:12px;
+}
+body{font-family:'DM Sans','Noto Sans SC',sans-serif;background:var(--bg2);color:var(--t1);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* AUTH */
+.auth-screen{position:fixed;inset:0;background:var(--bg2);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.auth-card{background:var(--bg);border-radius:var(--r2);border:1px solid var(--border2);box-shadow:var(--sh4);width:400px;padding:36px 36px 32px;}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.auth-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--blue2));border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.auth-title{font-size:20px;font-weight:700;}
+.auth-sub{font-size:13px;color:var(--t3);margin-top:2px;}
+.auth-tabs{display:flex;margin-bottom:24px;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.auth-tab{flex:1;padding:8px;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--t2);transition:all .15s;}
+.auth-tab.on{background:var(--blue);color:#fff;}
+.fg{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:5px;}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13.5px;font-family:inherit;color:var(--t1);background:var(--bg);outline:none;transition:all .15s;}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.form-input::placeholder{color:var(--t4);}
+.auth-btn{width:100%;padding:10px;border-radius:var(--r);font-size:14px;font-family:inherit;font-weight:600;cursor:pointer;border:none;background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .15s;margin-top:4px;}
+.auth-btn:hover{background:var(--blue2);transform:translateY(-1px);}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.auth-err{font-size:12.5px;color:var(--red);margin-top:8px;text-align:center;}
+.auth-ok{font-size:12.5px;color:var(--green);margin-top:8px;text-align:center;}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;flex-shrink:0;z-index:100;box-shadow:var(--sh1);position:relative;}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue) 0%,var(--blue3) 40%,transparent 100%);opacity:.7;}
+.logo-wrap{display:flex;align-items:center;gap:10px;padding-right:20px;border-right:1px solid var(--border);margin-right:18px;}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--blue),var(--blue2));border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.2px;}
+.logo-sub{font-size:10.5px;color:var(--t3);padding:2px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;}
+.topbar-stats{display:flex;align-items:center;gap:3px;}
+.stat{display:flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:12.5px;color:var(--t2);cursor:default;transition:background .15s;}
+.stat:hover{background:var(--bg3);}
+.dot{width:7px;height:7px;border-radius:50%;}
+.dot-blue{background:var(--blue);box-shadow:0 0 0 2px var(--blue-mid);}
+.dot-green{background:var(--green);box-shadow:0 0 0 2px var(--green-bg);animation:pl 2.5s infinite;}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.user-badge{font-size:12px;color:var(--t2);padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-family:'DM Mono',monospace;}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn-ghost{background:transparent;color:var(--t2);}
+.btn-ghost:hover{background:var(--bg3);color:var(--t1);}
+.btn-soft{background:var(--bg);color:var(--t1);border:1px solid var(--border2);box-shadow:var(--sh1);}
+.btn-soft:hover{background:var(--bg3);}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.btn-primary:hover{background:var(--blue2);transform:translateY(-1px);}
+.btn-red{background:transparent;color:var(--red);}
+.btn-red:hover{background:var(--red-bg);}
+
+/* WORKSPACE */
+.workspace{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:360px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg);overflow:hidden;box-shadow:2px 0 8px rgba(0,0,0,.04);z-index:10;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.stab{flex:1;padding:10px;font-size:12.5px;font-family:inherit;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s;}
+.stab.on{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* LIST */
+.list-view{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.sidebar-top{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.search-wrap{position:relative;}
+.search-ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;pointer-events:none;}
+.search-input{width:100%;padding:7px 10px 7px 32px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;font-family:inherit;color:var(--t1);background:var(--bg2);outline:none;transition:all .2s;}
+.search-input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.search-input::placeholder{color:var(--t4);}
+.chips{display:flex;gap:4px;flex-wrap:wrap;}
+.chip{padding:4px 10px;border-radius:20px;font-size:11.5px;font-family:inherit;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--t2);transition:all .15s;}
+.chip:hover{border-color:var(--border3);color:var(--t1);}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.list-header{padding:10px 14px 4px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.list-label{font-size:10.5px;font-weight:600;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;}
+.list-count{font-size:11.5px;color:var(--t3);background:var(--bg3);padding:2px 8px;border-radius:20px;border:1px solid var(--border);}
+.card-list{flex:1;overflow-y:auto;padding:4px 9px 9px;}
+.card-list::-webkit-scrollbar{width:3px;}
+.card-list::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px;}
+.card{padding:11px 14px 11px 17px;border-radius:var(--r);cursor:pointer;transition:all .18s;border:1.5px solid transparent;margin-bottom:4px;position:relative;background:var(--bg);}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3.5px;border-radius:4px 0 0 4px;opacity:0;transition:opacity .2s;}
+.card:hover{background:var(--bg2);border-color:var(--border2);box-shadow:var(--sh1);transform:translateX(2px);}
+.card:hover::before,.card.open::before{opacity:1;}
+.card.open{background:var(--bg);border-color:var(--border2);box-shadow:var(--sh2);}
+.era-古典::before{background:var(--yellow);}
+.era-近代::before{background:var(--blue);}
+.era-现代::before{background:var(--red);}
+.era-治理::before{background:var(--green);}
+.era-中国::before{background:var(--purple);}
+.card-name{font-size:14px;font-weight:600;color:var(--t1);}
+.card-who{font-size:11.5px;color:var(--t3);margin-top:2px;font-family:'DM Mono',monospace;}
+.card-arr{color:var(--t3);font-size:10px;transition:transform .2s;flex-shrink:0;margin-top:3px;}
+.card.open .card-arr{transform:rotate(90deg);color:var(--blue);}
+.card-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+.tag{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;}
+.tag-古典{background:var(--yellow-bg);color:var(--yellow);}
+.tag-近代{background:var(--blue-bg);color:var(--blue);}
+.tag-现代{background:var(--red-bg);color:var(--red);}
+.tag-治理{background:var(--green-bg);color:var(--green);}
+.tag-中国{background:var(--purple-bg);color:var(--purple);}
+.tag-new{background:var(--green-bg);color:var(--green);border:1px solid rgba(5,150,105,.2);}
+.tag-gray{background:var(--bg3);color:var(--t2);border:1px solid var(--border);}
+.card-detail{display:none;margin-top:11px;padding-top:11px;border-top:1px solid var(--border);animation:sd .15s ease;}
+.card.open .card-detail{display:block;}
+@keyframes sd{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.dr{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
+.dl{font-size:10.5px;font-weight:600;color:var(--t3);width:44px;flex-shrink:0;padding-top:2px;letter-spacing:.03em;text-transform:uppercase;}
+.dv{font-size:13px;color:var(--t2);line-height:1.6;flex:1;}
+.card-actions{display:flex;gap:6px;margin-top:11px;}
+.sidebar-foot{padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2);}
+.add-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:var(--r);font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;border:1.5px dashed var(--border2);background:var(--bg);color:var(--t2);transition:all .18s;}
+.add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg);}
+
+/* GRAPH */
+.graph-view{flex:1;overflow:hidden;position:relative;background:#fafbfc;}
+#graph-svg{width:100%;height:100%;}
+
+/* Graph tooltip */
+.graph-tooltip{
+  position:absolute;background:var(--bg);border:1.5px solid var(--border2);
+  border-radius:var(--r2);box-shadow:var(--sh3);
+  padding:14px 16px;max-width:260px;z-index:200;
+  pointer-events:none;opacity:0;transition:opacity .15s;
+}
+.graph-tooltip.show{opacity:1;}
+.gt-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px;}
+.gt-who{font-size:11.5px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.gt-claim{font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:8px;}
+.gt-tension{font-size:11.5px;color:var(--red);background:var(--red-bg);padding:4px 8px;border-radius:4px;}
+.gt-era{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;margin-bottom:8px;}
+
+/* Graph legend */
+.graph-legend{
+  position:absolute;bottom:16px;left:16px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px 12px;
+  box-shadow:var(--sh1);
+}
+.gl-title{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.gl-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--t2);margin-bottom:5px;}
+.gl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.gl-line{width:20px;height:2px;flex-shrink:0;}
+
+/* Graph empty */
+.graph-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:8px;font-size:13px;}
+
+/* RIGHT */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
+.right-top{height:44px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;background:var(--bg);box-shadow:var(--sh1);}
+.model-badge{display:flex;align-items:center;gap:6px;padding:4px 11px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:20px;font-size:12px;color:var(--t2);font-family:'DM Mono',monospace;}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px var(--green-bg);animation:pl 2.5s infinite;}
+.quick-bar{padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg);}
+.ql{font-size:10.5px;color:var(--t3);font-weight:600;white-space:nowrap;letter-spacing:.08em;text-transform:uppercase;}
+.qchips{display:flex;gap:5px;flex-wrap:wrap;}
+.qchip{padding:4px 12px;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg);color:var(--t2);transition:all .15s;}
+.qchip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg);}
+
+/* CHAT */
+.chat-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
+.chat-area::-webkit-scrollbar{width:4px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:4px;}
+.msg{display:flex;gap:10px;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse;}
+.msg-avatar{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;}
+.msg.assistant .msg-avatar{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;}
+.msg.user .msg-avatar{background:var(--bg3);color:var(--t2);border:1px solid var(--border2);}
+.msg-bubble{max-width:75%;padding:12px 15px;border-radius:var(--r2);font-size:13.5px;line-height:1.7;}
+.msg.assistant .msg-bubble{background:var(--bg);border:1px solid var(--border2);box-shadow:var(--sh1);color:var(--t1);border-radius:4px var(--r2) var(--r2) var(--r2);}
+.msg.user .msg-bubble{background:var(--blue);color:#fff;border-radius:var(--r2) 4px var(--r2) var(--r2);}
+/* clickable bold */
+.msg.assistant .msg-bubble strong{
+  cursor:pointer;background:rgba(37,99,235,.08);color:var(--blue);
+  padding:1px 5px;border-radius:4px;border:1px solid rgba(37,99,235,.15);
+  transition:all .15s;font-weight:600;
+}
+.msg.assistant .msg-bubble strong:hover{background:rgba(37,99,235,.18);border-color:rgba(37,99,235,.3);}
+.save-tip{font-size:11px;color:var(--t3);margin-top:6px;}
+
+.chat-input-area{padding:12px 16px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;}
+.chat-input-wrap{display:flex;gap:8px;align-items:flex-end;}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border2);border-radius:var(--r2);font-size:13.5px;font-family:inherit;color:var(--t1);background:var(--bg2);outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.5;transition:all .15s;}
+.chat-input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.chat-input::placeholder{color:var(--t4);}
+.send-btn{width:44px;height:44px;border-radius:var(--r2);border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.send-btn:hover{background:var(--blue2);transform:translateY(-1px);}
+.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.typing{display:flex;gap:5px;align-items:center;padding:8px 0;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--t3);animation:bounce .8s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* SAVE POPUP - now with category */
+.save-popup{position:fixed;bottom:80px;right:20px;background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--r2);box-shadow:var(--sh3);padding:18px;width:340px;z-index:500;animation:slideUp .2s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.save-popup-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.save-popup-title{font-size:13px;font-weight:600;color:var(--t2);}
+.popup-close{background:transparent;border:none;cursor:pointer;color:var(--t3);font-size:16px;line-height:1;}
+.save-popup-name{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:14px;padding:8px 12px;background:var(--blue-bg);border-radius:var(--r);border:1px solid var(--blue-bdr);}
+.popup-field{margin-bottom:12px;}
+.popup-label{font-size:11.5px;font-weight:600;color:var(--t2);margin-bottom:5px;display:block;}
+.popup-select,.popup-input{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;font-family:inherit;color:var(--t1);background:var(--bg);outline:none;transition:all .15s;-webkit-appearance:none;}
+.popup-select:focus,.popup-input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
+.save-popup-btns{display:flex;gap:8px;margin-top:4px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(17,19,24,.45);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;}
+.overlay.on{display:flex;}
+.modal{background:var(--bg);border-radius:var(--r2);border:1px solid var(--border2);box-shadow:var(--sh4);width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;animation:mu .18s ease;}
+@keyframes mu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{padding:20px 22px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:1;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-x{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--t3);font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.modal-x:hover{background:var(--bg3);color:var(--t1);}
+.modal-body{padding:18px 22px;}
+.mfg{margin-bottom:14px;}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:5px;}
+.fr{color:var(--red);margin-left:2px;}
+.fi,.fta,.fse{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13.5px;font-family:inherit;color:var(--t1);background:var(--bg);outline:none;transition:all .15s;-webkit-appearance:none;}
+.fi:focus,.fta:focus,.fse:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.fi::placeholder,.fta::placeholder{color:var(--t4);}
+.fta{resize:vertical;min-height:70px;line-height:1.55;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-foot{padding:12px 22px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--bg);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--t1);color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:var(--sh3);animation:ta 2.9s ease forwards;white-space:nowrap;pointer-events:none;}
+@keyframes ta{0%{opacity:0;transform:translateX(-50%) translateY(8px)}12%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 20px;gap:10px;text-align:center;}
+.empty-ic{font-size:28px;opacity:.25;}
+.empty-tx{font-size:12.5px;color:var(--t3);line-height:1.7;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-icon">希</div>
+      <div><div class="auth-title">希言</div><div class="auth-sub">政治哲学助手 · 个人知识系统</div></div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchTab('login')">登录</button>
+      <button class="auth-tab" onclick="switchTab('register')">注册</button>
+    </div>
+    <div class="fg"><label class="form-label">邮箱</label><input class="form-input" id="authEmail" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="fg"><label class="form-label">密码</label><input class="form-input" id="authPwd" type="password" placeholder="至少6位" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <button class="auth-btn" id="authBtn" onclick="doAuth()">登录</button>
+    <div id="authMsg"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;flex-direction:column;height:100vh;">
+<div class="topbar">
+  <div class="logo-wrap">
+    <div class="logo-icon">希</div>
+    <span class="logo-name">希言</span>
+    <span class="logo-sub">政治哲学助手</span>
+  </div>
+  <div class="topbar-stats">
+    <div class="stat"><span class="dot dot-blue"></span><span id="tc">0</span> 个概念</div>
+    <div class="stat"><span class="dot dot-green"></span><span id="dc">0</span> 今日新增</div>
+  </div>
+  <div class="topbar-right">
+    <div class="user-badge" id="userEmail">—</div>
+    <button class="btn btn-ghost" onclick="exportData()">↓ 导出</button>
+    <button class="btn btn-primary" onclick="openModal()">＋ 新增概念</button>
+    <button class="btn btn-red" onclick="logout()">退出</button>
+  </div>
+</div>
+
+<div class="workspace">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="stab on" onclick="switchSideTab('list',this)">📋 知识库</button>
+      <button class="stab" onclick="switchSideTab('graph',this)">🗺️ 知识图谱</button>
+    </div>
+
+    <div class="list-view" id="listView">
+      <div class="sidebar-top">
+        <div class="search-wrap">
+          <span class="search-ic">⌕</span>
+          <input class="search-input" id="si" type="text" placeholder="搜索概念、思想家…" oninput="renderCards()">
+        </div>
+        <div class="chips">
+          <button class="chip on" onclick="setF('all',this)">全部</button>
+          <button class="chip" onclick="setF('古典',this)">古典</button>
+          <button class="chip" onclick="setF('近代',this)">近代</button>
+          <button class="chip" onclick="setF('现代',this)">现代</button>
+          <button class="chip" onclick="setF('治理',this)">治理实践</button>
+          <button class="chip" onclick="setF('中国',this)">中国传统</button>
+        </div>
+      </div>
+      <div class="list-header">
+        <span class="list-label">知识地图</span>
+        <span class="list-count" id="vc">0</span>
+      </div>
+      <div class="card-list" id="cl"><div class="empty"><div class="empty-ic">◈</div><div class="empty-tx">加载中…</div></div></div>
+      <div class="sidebar-foot"><button class="add-btn" onclick="openModal()">＋ 新增概念条目</button></div>
+    </div>
+
+    <div class="graph-view" id="graphView" style="display:none;">
+      <svg id="graph-svg"></svg>
+      <div class="graph-tooltip" id="graphTooltip"></div>
+      <div class="graph-legend">
+        <div class="gl-title">图例</div>
+        <div class="gl-item"><div class="gl-dot" style="background:#d97706"></div>古典</div>
+        <div class="gl-item"><div class="gl-dot" style="background:#2563eb"></div>近代</div>
+        <div class="gl-item"><div class="gl-dot" style="background:#dc2626"></div>现代</div>
+        <div class="gl-item"><div class="gl-dot" style="background:#059669"></div>治理实践</div>
+        <div class="gl-item"><div class="gl-dot" style="background:#7c3aed"></div>中国传统</div>
+        <div class="gl-item" style="margin-top:6px"><div class="gl-line" style="background:#dc2626;opacity:.6;border-top:2px dashed #dc2626;height:0"></div>对立关系</div>
+        <div class="gl-item"><div class="gl-line" style="background:#94a3b8;height:1px"></div>同时代</div>
+      </div>
+      <div class="graph-empty" id="graphEmpty" style="display:none;">
+        <div style="font-size:28px;opacity:.25">◈</div>
+        <div>添加多个概念后图谱将自动生成</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="right-top">
+      <div class="model-badge"><span class="online-dot"></span>希言 · AI对话</div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" onclick="clearChat()">↺ 清空对话</button>
+    </div>
+    <div class="quick-bar">
+      <span class="ql">快捷指令</span>
+      <div class="qchips">
+        <button class="qchip" onclick="injectPrompt('请帮我分析以下文本，从政治哲学视角给出结构性解读：\n\n')">📄 分析文本</button>
+        <button class="qchip" onclick="injectPrompt('我有一个判断，请检验其理论支撑并找出反驳视角：\n\n')">🔎 检验观点</button>
+        <button class="qchip" onclick="injectPrompt('我面临以下工作决策困境，请给出结构性分析与现实指向：\n\n')">⚖️ 决策研判</button>
+        <button class="qchip" onclick="injectPrompt('请解释以下概念并指出其对立张力与当代应用：\n\n')">📖 查询概念</button>
+      </div>
+    </div>
+    <div class="chat-area" id="chatArea">
+      <div class="msg assistant">
+        <div class="msg-avatar">希</div>
+        <div>
+          <div class="msg-bubble">您好，我是希言。请输入问题、政策文本或工作困境。<br><br>回答中 <strong style="cursor:default;pointer-events:none">加粗的关键概念</strong> 可以点击，弹出分类选择后一键存入您的知识库。</div>
+          <div class="save-tip">💡 点击加粗文字 → 选择分类 → 存入知识库</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chatInput" placeholder="输入问题、文章片段或工作困境…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SAVE POPUP with category -->
+<div id="savePopup" style="display:none;" class="save-popup">
+  <div class="save-popup-header">
+    <div class="save-popup-title">📌 存入知识库</div>
+    <button class="popup-close" onclick="closeSavePopup()">✕</button>
+  </div>
+  <div class="save-popup-name" id="popupConceptName"></div>
+  <div class="popup-field">
+    <label class="popup-label">时代分类</label>
+    <select class="popup-select" id="popupEra">
+      <option value="">未分类</option>
+      <option value="古典">古典</option>
+      <option value="近代">近代</option>
+      <option value="现代">现代</option>
+      <option value="治理">治理实践</option>
+      <option value="中国">中国传统</option>
+    </select>
+  </div>
+  <div class="popup-field">
+    <label class="popup-label">思想家（可选）</label>
+    <input class="popup-input" id="popupThinker" placeholder="如：卢梭、韦伯">
+  </div>
+  <div class="popup-field">
+    <label class="popup-label">备注（可选）</label>
+    <input class="popup-input" id="popupNote" placeholder="一句话补充说明">
+  </div>
+  <div class="save-popup-btns">
+    <button class="btn btn-primary" style="flex:1" onclick="confirmSaveConcept()">确认存入</button>
+    <button class="btn btn-soft" onclick="openModalFromPopup()">详细编辑</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="ov" onclick="closeBg(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="mt">新增概念条目</span>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ei" value="">
+      <div class="frow">
+        <div class="mfg"><label class="fl">概念名称<span class="fr">*</span></label><input class="fi" id="fn" placeholder="如：社会契约"></div>
+        <div class="mfg"><label class="fl">思想家</label><input class="fi" id="fk" placeholder="如：卢梭、霍布斯"></div>
+      </div>
+      <div class="mfg"><label class="fl">核心主张<span class="fr">*</span></label><input class="fi" id="fc" placeholder="一句话概括核心论点"></div>
+      <div class="mfg"><label class="fl">对立关系</label><input class="fi" id="ften" placeholder="如：↔ 施米特决断论"></div>
+      <div class="frow">
+        <div class="mfg">
+          <label class="fl">时代分类</label>
+          <select class="fse" id="fe">
+            <option value="">未分类</option>
+            <option value="古典">古典</option>
+            <option value="近代">近代</option>
+            <option value="现代">现代</option>
+            <option value="治理">治理实践</option>
+            <option value="中国">中国传统</option>
+          </select>
+        </div>
+        <div class="mfg"><label class="fl">应用场景</label><input class="fi" id="fs" placeholder="如：政策执行分析"></div>
+      </div>
+      <div class="mfg"><label class="fl">触发问题</label><input class="fi" id="fq" placeholder="是什么问题引出了这个概念？"></div>
+      <div class="mfg"><label class="fl">我的观点</label><textarea class="fta" id="fo" placeholder="你对这个概念的个人判断…" rows="3"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveConcept()">保存条目</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://rcmnynigaxjxfktlscvh.supabase.co';
+const SUPA_KEY='sb_publishable_5FiundIlEUBkcVezEp0aUA_qqPWr1du';
+const DIFY_KEY='app-9gDneRejjNiVbTEhSXe9NpqB';
+const DIFY_API='https://api.dify.ai/v1';
+const {createClient}=supabase;
+const sb=createClient(SUPA_URL,SUPA_KEY);
+
+let currentUser=null,concepts=[],fil='all',expIdx=null,pendingConcept=null,conversationId=null,isTyping=false,authMode='login';
+
+// AUTH
+function switchTab(m){authMode=m;document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('on',(m==='login'&&i===0)||(m==='register'&&i===1)));document.getElementById('authBtn').textContent=m==='login'?'登录':'注册';document.getElementById('authMsg').innerHTML='';}
+async function doAuth(){
+  const email=document.getElementById('authEmail').value.trim(),pwd=document.getElementById('authPwd').value;
+  if(!email||!pwd){showAuthMsg('请填写邮箱和密码',false);return;}
+  const btn=document.getElementById('authBtn');btn.disabled=true;btn.textContent='处理中…';
+  try{
+    let res=authMode==='login'?await sb.auth.signInWithPassword({email,password:pwd}):await sb.auth.signUp({email,password:pwd});
+    if(res.error)showAuthMsg(res.error.message,false);
+    else if(authMode==='register'&&!res.data.session)showAuthMsg('注册成功！请检查邮箱确认',true);
+    else onLogin(res.data.user);
+  }catch(e){showAuthMsg('网络错误，请重试',false);}
+  btn.disabled=false;btn.textContent=authMode==='login'?'登录':'注册';
+}
+function showAuthMsg(m,ok){const el=document.getElementById('authMsg');el.className=ok?'auth-ok':'auth-err';el.textContent=m;}
+async function onLogin(user){
+  currentUser=user;
+  document.getElementById('authScreen').style.display='none';
+  const app=document.getElementById('mainApp');app.style.display='flex';
+  document.getElementById('userEmail').textContent=user.email.split('@')[0];
+  await loadConcepts();
+}
+async function logout(){await sb.auth.signOut();currentUser=null;concepts=[];document.getElementById('authScreen').style.display='flex';document.getElementById('mainApp').style.display='none';}
+
+(async()=>{const{data}=await sb.auth.getSession();if(data.session)onLogin(data.session.user);sb.auth.onAuthStateChange((_e,s)=>{if(s&&!currentUser)onLogin(s.user);});})();
+
+// DATA
+async function loadConcepts(){
+  const{data,error}=await sb.from('concepts').select('*').order('created_at',{ascending:false});
+  if(!error){concepts=data||[];renderCards();updateStats();if(document.getElementById('graphView').style.display!=='none')renderGraph();}
+}
+function renderCards(){
+  const q=document.getElementById('si').value.toLowerCase();
+  const fl=concepts.filter(c=>{const mf=fil==='all'||c.era===fil;const ms=!q||[c.name,c.thinker,c.claim,c.scene].some(s=>(s||'').toLowerCase().includes(q));return mf&&ms;});
+  document.getElementById('vc').textContent=fl.length;
+  const el=document.getElementById('cl');
+  if(!fl.length){el.innerHTML=`<div class="empty"><div class="empty-ic">◈</div><div class="empty-tx">暂无匹配条目<br>点击下方按钮新增概念</div></div>`;return;}
+  el.innerHTML=fl.map(c=>{
+    const op=expIdx===c.id,ec=c.era?`era-${c.era}`:'';
+    return`<div class="card ${op?'open':''} ${ec}" onclick="tog('${c.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div><div class="card-name">${c.name}</div><div class="card-who">${c.thinker||'—'}</div></div>
+        <span class="card-arr">▶</span>
+      </div>
+      <div class="card-tags">
+        ${c.era?`<span class="tag tag-${c.era}">${c.era}</span>`:''}
+        ${c.is_new?'<span class="tag tag-new">↑ 今日新增</span>':''}
+        ${c.scene?`<span class="tag tag-gray">${c.scene.split('、')[0]}</span>`:''}
+      </div>
+      <div class="card-detail">
+        ${dr('主张',c.claim)}${dr('张力',c.tension)}${dr('触发',c.trigger)}${dr('场景',c.scene)}${dr('观点',c.opinion)}
+        <div class="dr"><span class="dl">日期</span><span class="dv" style="color:var(--t3);font-size:12px">${new Date(c.created_at).toLocaleDateString('zh-CN')}</span></div>
+        <div class="card-actions">
+          <button class="btn btn-soft" style="font-size:12px;padding:4px 10px" onclick="editCard(event,'${c.id}')">编辑</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;color:var(--red)" onclick="delCard(event,'${c.id}')">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function dr(l,v){return v?`<div class="dr"><span class="dl">${l}</span><span class="dv">${v}</span></div>`:'';}
+function tog(id){expIdx=expIdx===id?null:id;renderCards();}
+function setF(v,el){fil=v;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');renderCards();}
+function updateStats(){
+  document.getElementById('tc').textContent=concepts.length;
+  const today=new Date().toDateString();
+  document.getElementById('dc').textContent=concepts.filter(c=>new Date(c.created_at).toDateString()===today).length;
+}
+
+// MODAL
+function openModal(pre){clrForm();document.getElementById('ei').value='';document.getElementById('mt').textContent='新增概念条目';if(pre){document.getElementById('fn').value=pre.name||'';document.getElementById('fk').value=pre.thinker||'';document.getElementById('fe').value=pre.era||'';document.getElementById('fc').value=pre.claim||'';}document.getElementById('ov').classList.add('on');setTimeout(()=>document.getElementById('fn').focus(),100);}
+function editCard(e,id){e.stopPropagation();const c=concepts.find(x=>x.id===id);if(!c)return;document.getElementById('ei').value=id;document.getElementById('mt').textContent='编辑概念条目';document.getElementById('fn').value=c.name||'';document.getElementById('fk').value=c.thinker||'';document.getElementById('fc').value=c.claim||'';document.getElementById('ften').value=c.tension||'';document.getElementById('fe').value=c.era||'';document.getElementById('fs').value=c.scene||'';document.getElementById('fq').value=c.trigger||'';document.getElementById('fo').value=c.opinion||'';document.getElementById('ov').classList.add('on');}
+function closeModal(){document.getElementById('ov').classList.remove('on');}
+function closeBg(e){if(e.target===document.getElementById('ov'))closeModal();}
+function clrForm(){['fn','fk','fc','ften','fs','fq','fo'].forEach(id=>document.getElementById(id).value='');document.getElementById('fe').value='';}
+async function saveConcept(){
+  const name=document.getElementById('fn').value.trim();if(!name){toast('请填写概念名称');return;}
+  const concept={user_id:currentUser.id,name,thinker:document.getElementById('fk').value.trim(),claim:document.getElementById('fc').value.trim(),tension:document.getElementById('ften').value.trim(),era:document.getElementById('fe').value,scene:document.getElementById('fs').value.trim(),trigger:document.getElementById('fq').value.trim(),opinion:document.getElementById('fo').value.trim(),is_new:true};
+  const id=document.getElementById('ei').value;
+  const res=id?await sb.from('concepts').update(concept).eq('id',id):await sb.from('concepts').insert([concept]);
+  if(!res.error){await loadConcepts();closeModal();toast(id?'✓ 概念已更新':'✓ 已存入知识库');}
+  else toast('保存失败：'+res.error.message);
+}
+async function delCard(e,id){e.stopPropagation();if(!confirm('确定删除该概念？'))return;await sb.from('concepts').delete().eq('id',id);await loadConcepts();renderGraph();toast('已删除');}
+
+// ONE-CLICK SAVE POPUP
+function onBoldClick(text){
+  pendingConcept=text;
+  document.getElementById('popupConceptName').textContent=text;
+  document.getElementById('popupEra').value='';
+  document.getElementById('popupThinker').value='';
+  document.getElementById('popupNote').value='';
+  document.getElementById('savePopup').style.display='block';
+}
+function closeSavePopup(){document.getElementById('savePopup').style.display='none';pendingConcept=null;}
+function openModalFromPopup(){
+  const era=document.getElementById('popupEra').value;
+  const thinker=document.getElementById('popupThinker').value;
+  closeSavePopup();
+  openModal({name:pendingConcept,era,thinker});
+}
+async function confirmSaveConcept(){
+  if(!pendingConcept)return;
+  const era=document.getElementById('popupEra').value;
+  const thinker=document.getElementById('popupThinker').value;
+  const note=document.getElementById('popupNote').value;
+  const{error}=await sb.from('concepts').insert([{user_id:currentUser.id,name:pendingConcept,era,thinker,claim:note||null,is_new:true}]);
+  if(!error){await loadConcepts();renderGraph();toast(`✓「${pendingConcept}」已存入知识库`);}
+  closeSavePopup();
+}
+
+// SIDEBAR TABS
+function switchSideTab(tab,el){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  document.getElementById('listView').style.display=tab==='list'?'flex':'none';
+  document.getElementById('graphView').style.display=tab==='graph'?'block':'none';
+  if(tab==='graph')renderGraph();
+}
+
+// KNOWLEDGE GRAPH - improved
+const ERA_COLOR={'古典':'#d97706','近代':'#2563eb','现代':'#dc2626','治理':'#059669','中国':'#7c3aed'};
+const ERA_LIGHT={'古典':'#fffbeb','近代':'#eff4ff','现代':'#fef2f2','治理':'#ecfdf5','中国':'#f5f3ff'};
+
+function renderGraph(){
+  const svg=d3.select('#graph-svg');
+  svg.selectAll('*').remove();
+  const tooltip=document.getElementById('graphTooltip');
+  tooltip.classList.remove('show');
+
+  if(concepts.length<2){document.getElementById('graphEmpty').style.display='flex';return;}
+  document.getElementById('graphEmpty').style.display='none';
+
+  const container=document.getElementById('graphView');
+  const W=container.clientWidth||360,H=container.clientHeight||500;
+
+  const nodes=concepts.map(c=>({...c}));
+  const links=[];
+  const linkedPairs=new Set();
+
+  // 对立关系连线（优先）
+  concepts.forEach(c=>{
+    if(!c.tension)return;
+    concepts.forEach(d=>{
+      if(c.id===d.id)return;
+      const key=[c.id,d.id].sort().join('|');
+      if(!linkedPairs.has(key)&&c.tension.includes(d.name)){
+        links.push({source:c.id,target:d.id,type:'tension'});
+        linkedPairs.add(key);
+      }
+    });
+  });
+
+  // 同时代连线（只连相邻节点，不全连）
+  const byEra={};
+  concepts.forEach(c=>{if(c.era){if(!byEra[c.era])byEra[c.era]=[];byEra[c.era].push(c);}});
+  Object.values(byEra).forEach(group=>{
+    for(let i=0;i<group.length-1;i++){
+      const key=[group[i].id,group[i+1].id].sort().join('|');
+      if(!linkedPairs.has(key)){
+        links.push({source:group[i].id,target:group[i+1].id,type:'era'});
+        linkedPairs.add(key);
+      }
+    }
+  });
+
+  const svgEl=svg.attr('width',W).attr('height',H);
+
+  // 背景
+  svgEl.append('rect').attr('width',W).attr('height',H).attr('fill','#fafbfc');
+
+  // 力导向，参数优化
+  const sim=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(links).id(d=>d.id).distance(d=>d.type==='tension'?130:100).strength(d=>d.type==='tension'?.6:.3))
+    .force('charge',d3.forceManyBody().strength(-280).distanceMax(300))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide(50))
+    .force('x',d3.forceX(W/2).strength(.05))
+    .force('y',d3.forceY(H/2).strength(.05));
+
+  // 箭头marker
+  svgEl.append('defs').append('marker').attr('id','tension-arrow').attr('viewBox','0 0 10 10').attr('refX',28).attr('refY',5).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto-start-reverse').append('path').attr('d','M2 1L8 5L2 9').attr('fill','none').attr('stroke','#dc2626').attr('stroke-width',1.5).attr('stroke-linecap','round');
+
+  const link=svgEl.append('g').selectAll('line').data(links).join('line')
+    .attr('stroke',d=>d.type==='tension'?'#dc2626':'#cbd5e1')
+    .attr('stroke-width',d=>d.type==='tension'?2:1)
+    .attr('stroke-dasharray',d=>d.type==='tension'?'6,3':'none')
+    .attr('opacity',d=>d.type==='tension'?.7:.4)
+    .attr('marker-end',d=>d.type==='tension'?'url(#tension-arrow)':null);
+
+  const node=svgEl.append('g').selectAll('g').data(nodes).join('g')
+    .attr('cursor','pointer')
+    .on('mouseenter',(event,d)=>showTooltip(event,d))
+    .on('mousemove',(event)=>moveTooltip(event))
+    .on('mouseleave',()=>hideTooltip())
+    .on('click',(_,d)=>{expIdx=d.id;switchSideTab('list',document.querySelectorAll('.stab')[0]);renderCards();setTimeout(()=>{const el=document.querySelector('.card.open');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);})
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+  // 节点圆圈 + 光晕
+  node.append('circle').attr('r',26).attr('fill',d=>ERA_LIGHT[d.era]||'#f1f5f9').attr('stroke',d=>ERA_COLOR[d.era]||'#94a3b8').attr('stroke-width',2.5);
+  node.append('text').text(d=>d.name.slice(0,3)).attr('text-anchor','middle').attr('dominant-baseline','central').attr('fill',d=>ERA_COLOR[d.era]||'#64748b').attr('font-size','12px').attr('font-weight','600').attr('font-family','Noto Sans SC, sans-serif').attr('pointer-events','none');
+
+  sim.on('tick',()=>{
+    link
+      .attr('x1',d=>Math.max(30,Math.min(W-30,d.source.x)))
+      .attr('y1',d=>Math.max(30,Math.min(H-30,d.source.y)))
+      .attr('x2',d=>Math.max(30,Math.min(W-30,d.target.x)))
+      .attr('y2',d=>Math.max(30,Math.min(H-30,d.target.y)));
+    node.attr('transform',d=>`translate(${Math.max(30,Math.min(W-30,d.x))},${Math.max(30,Math.min(H-30,d.y))})`);
+  });
+
+  // 预热模拟
+  sim.alpha(1).restart();
+  for(let i=0;i<100;i++)sim.tick();
+  sim.alpha(.3);
+}
+
+function showTooltip(event,d){
+  const tt=document.getElementById('graphTooltip');
+  const eraClass=d.era?`tag tag-${d.era}`:'tag tag-gray';
+  tt.innerHTML=`
+    ${d.era?`<span class="${eraClass}" style="font-size:10.5px;padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:8px">${d.era}</span>`:''}
+    <div class="gt-name">${d.name}</div>
+    ${d.thinker?`<div class="gt-who">${d.thinker}</div>`:''}
+    ${d.claim?`<div class="gt-claim">${d.claim}</div>`:''}
+    ${d.tension?`<div class="gt-tension">↔ ${d.tension}</div>`:''}
+    <div style="font-size:11px;color:var(--t3);margin-top:8px">点击跳转知识库 · 拖拽移动节点</div>
+  `;
+  moveTooltip(event);
+  tt.classList.add('show');
+}
+function moveTooltip(event){
+  const tt=document.getElementById('graphTooltip');
+  const container=document.getElementById('graphView');
+  const rect=container.getBoundingClientRect();
+  let x=event.clientX-rect.left+16,y=event.clientY-rect.top+16;
+  if(x+270>rect.width)x=event.clientX-rect.left-280;
+  if(y+200>rect.height)y=event.clientY-rect.top-210;
+  tt.style.left=x+'px';tt.style.top=y+'px';
+}
+function hideTooltip(){document.getElementById('graphTooltip').classList.remove('show');}
+
+// CHAT
+function renderMsg(role,content){
+  const area=document.getElementById('chatArea');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  const avatar=role==='assistant'?'希':(currentUser?.email?.[0]?.toUpperCase()||'U');
+  let html=content;
+  if(role==='assistant'){
+    html=content.replace(/\*\*(.*?)\*\*/g,(_,t)=>`<strong onclick="onBoldClick('${t.replace(/'/g,"&#39;")}')" title="点击存入知识库">${t}</strong>`);
+    html=html.replace(/^#{1,3}\s+(.+)$/gm,'<b>$1</b>');
+    html=html.replace(/\n/g,'<br>');
+  }
+  div.innerHTML=`<div class="msg-avatar">${avatar}</div><div><div class="msg-bubble">${html}</div>${role==='assistant'?'<div class="save-tip">💡 点击加粗文字 → 选分类 → 存入知识库</div>':''}</div>`;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+  return div;
+}
+function showTyping(){const area=document.getElementById('chatArea');const div=document.createElement('div');div.className='msg assistant';div.id='typingIndicator';div.innerHTML=`<div class="msg-avatar">希</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;area.appendChild(div);area.scrollTop=area.scrollHeight;}
+function hideTyping(){document.getElementById('typingIndicator')?.remove();}
+
+async function sendMsg(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();if(!text||isTyping)return;
+  isTyping=true;document.getElementById('sendBtn').disabled=true;
+  input.value='';input.style.height='auto';
+  renderMsg('user',text);
+  await sb.from('conversations').insert([{user_id:currentUser.id,role:'user',content:text}]);
+  showTyping();
+  try{
+    const body={inputs:{},query:text,response_mode:'streaming',user:currentUser.id};
+    if(conversationId)body.conversation_id=conversationId;
+    const res=await fetch(`${DIFY_API}/chat-messages`,{method:'POST',headers:{'Authorization':`Bearer ${DIFY_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    hideTyping();
+    if(!res.ok){const err=await res.json();renderMsg('assistant',`抱歉，发生错误：${err.message||res.status}`);isTyping=false;document.getElementById('sendBtn').disabled=false;return;}
+    const msgDiv=renderMsg('assistant','');
+    const bubble=msgDiv.querySelector('.msg-bubble');
+    const reader=res.body.getReader();const decoder=new TextDecoder();let fullText='';
+    while(true){
+      const{done,value}=await reader.read();if(done)break;
+      const lines=decoder.decode(value).split('\n');
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        try{
+          const data=JSON.parse(line.slice(6));
+          if(data.event==='message'){
+            fullText+=data.answer;
+            bubble.innerHTML=fullText.replace(/\*\*(.*?)\*\*/g,(_,t)=>`<strong onclick="onBoldClick('${t.replace(/'/g,"&#39;")}')" title="点击存入知识库">${t}</strong>`).replace(/^#{1,3}\s+(.+)$/gm,'<b>$1</b>').replace(/\n/g,'<br>');
+            document.getElementById('chatArea').scrollTop=document.getElementById('chatArea').scrollHeight;
+          }
+          if(data.event==='message_end'){conversationId=data.conversation_id;await sb.from('conversations').insert([{user_id:currentUser.id,role:'assistant',content:fullText}]);}
+        }catch(e){}
+      }
+    }
+  }catch(e){hideTyping();renderMsg('assistant','网络错误，请检查连接后重试。');}
+  isTyping=false;document.getElementById('sendBtn').disabled=false;
+}
+
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function injectPrompt(text){const i=document.getElementById('chatInput');i.value=text;i.focus();autoResize(i);}
+function clearChat(){if(!confirm('清空当前对话？'))return;document.getElementById('chatArea').innerHTML='';conversationId=null;renderMsg('assistant','对话已重置，请继续提问。');}
+
+function exportData(){
+  const tx=concepts.map(c=>[`# ${c.name}`,`思想家：${c.thinker||'—'}`,`核心主张：${c.claim||'—'}`,`对立关系：${c.tension||'—'}`,`时代：${c.era||'—'}`,`应用场景：${c.scene||'—'}`,c.trigger?`触发问题：${c.trigger}`:'',c.opinion?`我的观点：${c.opinion}`:'',`录入日期：${new Date(c.created_at).toLocaleDateString('zh-CN')}`].filter(Boolean).join('\n')).join('\n\n---\n\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([tx],{type:'text/plain;charset=utf-8'}));a.download=`希言知识地图_${new Date().toLocaleDateString('zh-CN')}.txt`;a.click();toast('✓ 导出成功');
+}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+</script>
+</body>
+</html>
